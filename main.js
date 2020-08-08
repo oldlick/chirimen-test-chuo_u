@@ -26,6 +26,6 @@ async function LEDblink() {
     gpio0Val = gpio0Val === 1 ? 0 : 1; // 条件 (三項) 演算子
     await gpioPort0.write(gpio0Val);
     msg.innerHTML = gpio0Val;
-    await sleep(1000);
+    await sleep(500);
   }
 }
