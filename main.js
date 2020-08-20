@@ -1,28 +1,36 @@
 var microBitBle;
 
-var gpioPort1;
+var IrSens;
+var TmpSens;
 
-var blinkEnable;
+var loopEnable;
 async function connect() {
   microBitBle = await microBitBleFactory.connect();
   msg.innerHTML = "BLE接続しました。";
   var gpioAccess = await microBitBle.requestGPIOAccess();
   var mbGpioPorts = gpioAccess.ports;
-  gpioPort1 = mbGpioPorts.get(1);
-  await gpioPort1.export("in"); //port0 out
-  blinkEnable = true;
-  LEDblink();
+  IrSens = mbGpioPorts.get(1);
+  await IrSens.export("in");
+  var i2cAccess = await microBitBle.requestI2CAccess();
+  var i2cPort = i2cAccess.ports.get(1);
+  TmpSens = new ADT7410(i2cPort, 0x48);
+  await TmpSens.init();
+  loopEnable = true;
+  loop();
 }
 
 async function disconnect() {
-  blinkEnable = false;
+  loopEnable = false;
   await microBitBle.disconnect();
   msg.innerHTML = "BLE接続を切断しました。";
 }
-async function LEDblink() {
-  while (blinkEnable) {
-    var gpio1Val = await gpioPort1.read();
-    IrSensor.innerHTML = gpio1Val === 0 ? "OFF" : "ON";
+async function loop() {
+  var IrSensVal, TmpSensVal;
+  while (loopEnable) {
+    IrSensVal = await IrSens.read();
+    IrSensMsg.innerHTML = IrSensVal === 0 ? "OFF" : "ON";
+    TmpSensVal = await TmpSens.read();
+    TmpSensMsg.innerHTML = TmpSensVal;
     await sleep(100);
   }
 }
