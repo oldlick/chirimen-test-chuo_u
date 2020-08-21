@@ -9,10 +9,6 @@ var ThermoTableEnable = false;
 
 var loopEnable;
 async function connect() {
-  if (ThermoTableEnable === false) {
-    initTable();
-    ThermoTableEnable = true;
-  }
   microBitBle = await microBitBleFactory.connect();
   msg.innerHTML = "BLE接続しました。";
   var gpioAccess = await microBitBle.requestGPIOAccess();
@@ -25,8 +21,15 @@ async function connect() {
   await TmpSens.init();
   ThermoSens = new AMG8833(i2cPort, 0x69);
   await ThermoSens.init();
+  if (ThermoTableEnable === false) {
+    initTable();
+    ThermoTableEnable = true;
+  }
+  await setAirTmp();
+  await setAlarmTime();
   loopEnable = true;
-  loop();
+  SensLoop();
+  AlarmLoop();
 }
 
 async function disconnect() {
@@ -35,7 +38,7 @@ async function disconnect() {
   msg.innerHTML = "BLE接続を切断しました。";
 }
 
-async function loop() {
+async function SensLoop() {
   var IrSensVal, TmpSensVal, ThermoSensImg, situation;
   while (loopEnable) {
     IrSensVal = await IrSens.read();
@@ -50,6 +53,33 @@ async function loop() {
   }
 }
 
+var AirTmpVal;
+var AlarmTimeVal;
+async function AlarmLoop() {
+  while (loopEnable) {
+    var NowTimeVal = new Date();
+    var d = AlarmTimeVal.getTime() - NowTimeVal.getTime();
+
+    AlarmTimeMsgHour.innerHTML = Math.floor(d / 1000 / 60 / 60);
+    d %= 1000 * 60 * 60;
+    AlarmTimeMsgMinutes.innerHTML = Math.floor(d / 1000 / 60);
+    await sleep(1000);
+  }
+}
+async function setAirTmp() {
+  AirTmpVal = Number(AirTmpTxt.value);
+}
+async function setAlarmTime() {
+  AlarmTimeVal = new Date();
+  var NowTimeVal = new Date();
+  var h = Number(AlarmTimeTxtHour.value);
+  var m = Number(AlarmTimeTxtMinutes.value);
+  AlarmTimeVal.setHours(h);
+  AlarmTimeVal.setMinutes(m);
+  if (NowTimeVal.getTime() > AlarmTimeVal.getTime()) {
+    AlarmTimeVal.setDate(AlarmTimeVal.getDate() + 1);
+  }
+}
 async function calcSituation(IrSensVal, ThermoSensImg) {
   //0: 1:there is human 2:human is sleeping
   var cnt = 0;

@@ -27,7 +27,9 @@
       <input type="button" value="Connect" onclick="connect();" />
       <input type="button" value="Disconnect" onclick="disconnect();" />
     </form>
+
     <hr />
+
     <div>Micro:bit <span id="msg">---</span></div>
     <div>サーモグラフィ</div>
     <table style="width: 200px; height: 200px;" id="ThermoSensImg"></table>
@@ -38,7 +40,18 @@
         <div align="center">状態 <span id="ExistenceHumanMsg">---</span></div>
       </div>
     </font>
+
     <hr />
-    <div>test <input type="text" id="" /></div>
+
+    <form id="AirTmpSet" onchange="setAirTmp()">
+      エアコン設定温度 <input type="text" id="AirTmpTxt" size="6" value="27" />℃
+    </form>
+    <form id="AlarmTimeSet" onchange="setAlarmTime()">
+      起床時刻
+      <input type="text" id="AlarmTimeTxtHour" size="6" value="7" />h
+      <input type="text" id="AlarmTimeTxtMinutes" size="6" value="00" />m
+    </form>
+    <span id="AlarmTimeMsgHour">--</span>h
+    <span id="AlarmTimeMsgMinutes">--</span>m 後にアラームが設定されています
   </body>
 </html>
