@@ -55,12 +55,23 @@ async function calcSituation(IrSensVal, ThermoSensImg) {
   var cnt = 0;
   for (var i = 0; i < 8; i++) {
     for (var j = 0; j < 8; j++) {
-      cnt += 29 < ThermoSensImg[i][j] && ThermoSensImg[i][j] < 36 ? 1 : 0;
+      cnt += 30 < ThermoSensImg[i][j] && ThermoSensImg[i][j] < 36 ? 1 : 0;
     }
   }
-  if (IrSensVal === 1) return "exist";
-  if (cnt > 1) return "sleep";
-  return "not exist";
+  var box = document.getElementById("ExistenceHumanMBox");
+
+  if (cnt > 1) {
+    if (IrSensVal === 1) {
+      box.style.backgroundColor = "#eeeeaa";
+      return "exist";
+    } else {
+      box.style.backgroundColor = "#aaeeaa";
+      return "sleep";
+    }
+  } else {
+    box.style.backgroundColor = "#aaaaee";
+    return "not exist";
+  }
 }
 
 function initTable() {
@@ -90,8 +101,8 @@ function heatMap(tImage) {
   }
 }
 
-var tMax = 40;
-var tMin = 20;
+var tMax = 36;
+var tMin = 15;
 var hMax = 0;
 var hMin = 270;
 function temperatureToHue(temp) {
