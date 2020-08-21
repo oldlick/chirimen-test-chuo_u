@@ -52,11 +52,10 @@ async function SensLoop() {
     IrSensMsg.innerHTML = IrSensVal === 0 ? "OFF" : "ON";
     TmpSensVal = await TmpSens.read();
     TmpSensMsg.innerHTML = TmpSensVal;
-    ChaneAirTmp(TmpSensVal);
+    checkAirTmp(TmpSensVal);
     ThermoSensImg = await ThermoSens.readData();
     heatMap(ThermoSensImg);
     console.log(ThermoSensImg);
-    var old = situation;
     situation = await calcSituation(situation, IrSensVal, ThermoSensImg);
     ExistenceHumanMsg.innerHTML = situation;
     await sleep(100);
@@ -70,11 +69,7 @@ async function AlarmLoop() {
     if (d < 0) {
       if (situation === "sleep") {
         AlarmTimeMsg.innerHTML = "起床時間です";
-        ws = new WebSocket("ws://localhost:8080");
-        ws.addEventListener("open", function (event) {
-          console.log("WebSocket 接続完了");
-          ws.send("wake up");
-        });
+        changeLight(true);
       }
       setAlarmTime();
     } else {
@@ -88,14 +83,14 @@ async function AlarmLoop() {
 }
 
 async function setAirTmp() {
-  if (event.target.value === "under") {
-    AirTmpRadio = "under";
-    AirTmpUnderRadio.checked = true;
-    AirTmpUpperRadio.checked = false;
-  } else {
+  if (event.target.value === "upper") {
     AirTmpRadio = "upper";
     AirTmpUnderRadio.checked = false;
     AirTmpUpperRadio.checked = true;
+  } else {
+    AirTmpRadio = "under";
+    AirTmpUnderRadio.checked = true;
+    AirTmpUpperRadio.checked = false;
   }
   AirTmpVal = Number(AirTmpTxt.value);
 }
@@ -139,10 +134,13 @@ async function calcSituation(oldSituation, IrSensVal, ThermoSensImg) {
     if (newSituation === "not exist") return "not exist";
     else return "exist";
   } else if (oldSituation === "exist") {
+    if (newSituation === "sleep") changeLight(false);
     return newSituation;
   } else if (oldSituation === "sleep") {
-    if (newSituation === "not exist") return "not exist";
-    else return "sleep";
+    if (newSituation === "not exist") {
+      changeLight(true);
+      return "not exist";
+    } else return "sleep";
   }
   return "error";
 }
@@ -152,59 +150,52 @@ async function checkAirTmp(TmpSensVal) {
   if (AirTmpRadio === "under") {
     if (AirTmpSwitch === "off" && TmpSensVal > AirTmpVal + 0.5) {
       AirTmpSwitch = "on";
-      ws = new WebSocket("ws://localhost:8080");
-      ws.addEventListener("open", function (event) {
-        console.log("WebSocket 接続完了");
-        ws.send("air conditioner on");
-      });
-    }
-    if (AirTmpSwitch === "on" && TmpSensVal < AirTmpVal - 0.5) {
+      changeAirTmp(true);
+    } else if (AirTmpSwitch === "on" && TmpSensVal < AirTmpVal - 0.5) {
       AirTmpSwitch = "off";
-      ws = new WebSocket("ws://localhost:8080");
-      ws.addEventListener("open", function (event) {
-        console.log("WebSocket 接続完了");
-        ws.send("air conditioner off");
-      });
+      changeAirTmp(false);
     }
   }
-  if (AirTmpRadio === "under" && TmpSensVal >= AirTmpVal) {
+  if (AirTmpRadio === "upper") {
     if (AirTmpSwitch === "off" && TmpSensVal < AirTmpVal - 0.5) {
       AirTmpSwitch = "on";
-      ws = new WebSocket("ws://localhost:8080");
-      ws.addEventListener("open", function (event) {
-        console.log("WebSocket 接続完了");
-        ws.send("air conditioner on");
-      });
-    }
-    if (AirTmpSwitch === "on" && TmpSensVal > AirTmpVal + 0.5) {
+      await changeAirTmp(true);
+    } else if (AirTmpSwitch === "on" && TmpSensVal > AirTmpVal + 0.5) {
       AirTmpSwitch = "off";
+      changeAirTmp(false);
     }
   }
   AirTmpMsg.innerHTML = "エアコン " + AirTmpSwitch;
 }
 
-async function checkAirTmp(on) {
+async function changeAirTmp(on) {
   if (on) {
     ws = new WebSocket("ws://localhost:8080");
     ws.addEventListener("open", function (event) {
       console.log("WebSocket 接続完了");
-      ws.send("air conditioner off");
+      ws.send("air con on");
     });
   } else {
+    ws = new WebSocket("ws://localhost:8080");
+    ws.addEventListener("open", function (event) {
+      console.log("WebSocket 接続完了");
+      ws.send("air con off");
+    });
   }
 }
-async function ChangeLight(on) {
+
+async function changeLight(on) {
   if (on) {
     ws = new WebSocket("ws://localhost:8080");
     ws.addEventListener("open", function (event) {
       console.log("WebSocket 接続完了");
-      ws.send("wake up");
+      ws.send("light on");
     });
   } else {
     ws = new WebSocket("ws://localhost:8080");
     ws.addEventListener("open", function (event) {
       console.log("WebSocket 接続完了");
-      ws.send("sleep");
+      ws.send("light off");
     });
   }
 }
