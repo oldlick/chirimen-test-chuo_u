@@ -58,7 +58,7 @@ async function SensLoop() {
     console.log(ThermoSensImg);
     situation = await calcSituation(situation, IrSensVal, ThermoSensImg);
     ExistenceHumanMsg.innerHTML = situation;
-    await sleep(100);
+    await sleep(500);
   }
 }
 
@@ -146,23 +146,28 @@ async function calcSituation(oldSituation, IrSensVal, ThermoSensImg) {
 }
 
 async function checkAirTmp(TmpSensVal) {
-  //シュミットトリガ
-  if (AirTmpRadio === "under") {
-    if (AirTmpSwitch === "off" && TmpSensVal > AirTmpVal + 0.5) {
-      AirTmpSwitch = "on";
-      changeAirTmp(true);
-    } else if (AirTmpSwitch === "on" && TmpSensVal < AirTmpVal - 0.5) {
-      AirTmpSwitch = "off";
-      changeAirTmp(false);
+  if (situation !== "sleep") {
+    AirTmpSwitch = "off";
+    changeAirTmp(false);
+  } else {
+    //シュミットトリガ
+    if (AirTmpRadio === "under") {
+      if (AirTmpSwitch === "off" && TmpSensVal > AirTmpVal + 0.5) {
+        AirTmpSwitch = "on";
+        changeAirTmp(true);
+      } else if (AirTmpSwitch === "on" && TmpSensVal < AirTmpVal - 0.5) {
+        AirTmpSwitch = "off";
+        changeAirTmp(false);
+      }
     }
-  }
-  if (AirTmpRadio === "upper") {
-    if (AirTmpSwitch === "off" && TmpSensVal < AirTmpVal - 0.5) {
-      AirTmpSwitch = "on";
-      await changeAirTmp(true);
-    } else if (AirTmpSwitch === "on" && TmpSensVal > AirTmpVal + 0.5) {
-      AirTmpSwitch = "off";
-      changeAirTmp(false);
+    if (AirTmpRadio === "upper") {
+      if (AirTmpSwitch === "off" && TmpSensVal < AirTmpVal - 0.5) {
+        AirTmpSwitch = "on";
+        changeAirTmp(true);
+      } else if (AirTmpSwitch === "on" && TmpSensVal > AirTmpVal + 0.5) {
+        AirTmpSwitch = "off";
+        changeAirTmp(false);
+      }
     }
   }
   AirTmpMsg.innerHTML = "エアコン " + AirTmpSwitch;
