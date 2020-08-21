@@ -34,6 +34,7 @@ async function disconnect() {
   await microBitBle.disconnect();
   msg.innerHTML = "BLE接続を切断しました。";
 }
+
 async function loop() {
   var IrSensVal, TmpSensVal, ThermoSensImg;
   while (loopEnable) {
