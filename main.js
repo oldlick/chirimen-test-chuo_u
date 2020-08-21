@@ -5,7 +5,8 @@ var TmpSens;
 var ThermoSens;
 var ThermoMax;
 var ThermoMin;
-var ThermoTableEnable = false;
+var ws;
+var OneTimeThingsEnable = false;
 
 var loopEnable;
 async function connect() {
@@ -21,9 +22,9 @@ async function connect() {
   await TmpSens.init();
   ThermoSens = new AMG8833(i2cPort, 0x69);
   await ThermoSens.init();
-  if (ThermoTableEnable === false) {
+  if (OneTimeThingsEnable === false) {
     initTable();
-    ThermoTableEnable = true;
+    OneTimeThingsEnable = true;
   }
   await setAirTmp();
   await setAlarmTime();
@@ -38,69 +39,173 @@ async function disconnect() {
   msg.innerHTML = "BLE接続を切断しました。";
 }
 
+var situation = "not exist";
+var AirTmpVal;
+var AirTmpSwitch = "off";
+var AirTmpRadio;
+var AlarmTimeVal;
+
 async function SensLoop() {
-  var IrSensVal, TmpSensVal, ThermoSensImg, situation;
+  var IrSensVal, TmpSensVal, ThermoSensImg;
   while (loopEnable) {
     IrSensVal = await IrSens.read();
     IrSensMsg.innerHTML = IrSensVal === 0 ? "OFF" : "ON";
     TmpSensVal = await TmpSens.read();
     TmpSensMsg.innerHTML = TmpSensVal;
+    ChaneAirTmp(TmpSensVal);
     ThermoSensImg = await ThermoSens.readData();
     heatMap(ThermoSensImg);
     console.log(ThermoSensImg);
-    situation = await calcSituation(IrSensVal, ThermoSensImg);
+    var old = situation;
+    situation = await calcSituation(situation, IrSensVal, ThermoSensImg);
     ExistenceHumanMsg.innerHTML = situation;
+    await sleep(100);
   }
 }
 
-var AirTmpVal;
-var AlarmTimeVal;
 async function AlarmLoop() {
   while (loopEnable) {
     var NowTimeVal = new Date();
     var d = AlarmTimeVal.getTime() - NowTimeVal.getTime();
-
-    AlarmTimeMsgHour.innerHTML = Math.floor(d / 1000 / 60 / 60);
-    d %= 1000 * 60 * 60;
-    AlarmTimeMsgMinutes.innerHTML = Math.floor(d / 1000 / 60);
+    if (d < 0) {
+      if (situation === "sleep") {
+        AlarmTimeMsg.innerHTML = "起床時間です";
+        ws = new WebSocket("ws://localhost:8080");
+        ws.addEventListener("open", function (event) {
+          console.log("WebSocket 接続完了");
+          ws.send("wake up");
+        });
+      }
+      setAlarmTime();
+    } else {
+      var hd = Math.floor(d / 1000 / 60 / 60);
+      var hm = Math.floor(d / 1000 / 60) % 60;
+      AlarmTimeMsg.innerHTML =
+        hd + "h " + hm + "m 後にアラームが設定されています";
+    }
     await sleep(1000);
   }
 }
+
 async function setAirTmp() {
+  if (event.target.value === "under") {
+    AirTmpRadio = "under";
+    AirTmpUnderRadio.checked = true;
+    AirTmpUpperRadio.checked = false;
+  } else {
+    AirTmpRadio = "upper";
+    AirTmpUnderRadio.checked = false;
+    AirTmpUpperRadio.checked = true;
+  }
   AirTmpVal = Number(AirTmpTxt.value);
 }
+
 async function setAlarmTime() {
   AlarmTimeVal = new Date();
   var NowTimeVal = new Date();
-  var h = Number(AlarmTimeTxtHour.value);
-  var m = Number(AlarmTimeTxtMinutes.value);
+  var h = Number(AlarmTimeTxtHour.value) % 24;
+  var m = Number(AlarmTimeTxtMinutes.value) % 60;
   AlarmTimeVal.setHours(h);
   AlarmTimeVal.setMinutes(m);
-  if (NowTimeVal.getTime() > AlarmTimeVal.getTime()) {
+  if (NowTimeVal.getTime() >= AlarmTimeVal.getTime()) {
     AlarmTimeVal.setDate(AlarmTimeVal.getDate() + 1);
   }
 }
-async function calcSituation(IrSensVal, ThermoSensImg) {
+
+async function calcSituation(oldSituation, IrSensVal, ThermoSensImg) {
   //0: 1:there is human 2:human is sleeping
   var cnt = 0;
   for (var i = 0; i < 8; i++) {
     for (var j = 0; j < 8; j++) {
-      cnt += 30 < ThermoSensImg[i][j] && ThermoSensImg[i][j] < 36 ? 1 : 0;
+      cnt += 29 < ThermoSensImg[i][j] && ThermoSensImg[i][j] < 36 ? 1 : 0;
     }
   }
   var box = document.getElementById("ExistenceHumanMBox");
 
+  var newSituation;
   if (cnt > 1) {
     if (IrSensVal === 1) {
       box.style.backgroundColor = "#eeeeaa";
-      return "exist";
+      newSituation = "exist";
     } else {
       box.style.backgroundColor = "#aaeeaa";
-      return "sleep";
+      newSituation = "sleep";
     }
   } else {
     box.style.backgroundColor = "#aaaaee";
-    return "not exist";
+    newSituation = "not exist";
+  }
+  if (oldSituation === "not exist") {
+    if (newSituation === "not exist") return "not exist";
+    else return "exist";
+  } else if (oldSituation === "exist") {
+    return newSituation;
+  } else if (oldSituation === "sleep") {
+    if (newSituation === "not exist") return "not exist";
+    else return "sleep";
+  }
+  return "error";
+}
+
+async function checkAirTmp(TmpSensVal) {
+  //シュミットトリガ
+  if (AirTmpRadio === "under") {
+    if (AirTmpSwitch === "off" && TmpSensVal > AirTmpVal + 0.5) {
+      AirTmpSwitch = "on";
+      ws = new WebSocket("ws://localhost:8080");
+      ws.addEventListener("open", function (event) {
+        console.log("WebSocket 接続完了");
+        ws.send("air conditioner on");
+      });
+    }
+    if (AirTmpSwitch === "on" && TmpSensVal < AirTmpVal - 0.5) {
+      AirTmpSwitch = "off";
+      ws = new WebSocket("ws://localhost:8080");
+      ws.addEventListener("open", function (event) {
+        console.log("WebSocket 接続完了");
+        ws.send("air conditioner off");
+      });
+    }
+  }
+  if (AirTmpRadio === "under" && TmpSensVal >= AirTmpVal) {
+    if (AirTmpSwitch === "off" && TmpSensVal < AirTmpVal - 0.5) {
+      AirTmpSwitch = "on";
+      ws = new WebSocket("ws://localhost:8080");
+      ws.addEventListener("open", function (event) {
+        console.log("WebSocket 接続完了");
+        ws.send("air conditioner on");
+      });
+    }
+    if (AirTmpSwitch === "on" && TmpSensVal > AirTmpVal + 0.5) {
+      AirTmpSwitch = "off";
+    }
+  }
+  AirTmpMsg.innerHTML = "エアコン " + AirTmpSwitch;
+}
+
+async function checkAirTmp(on) {
+  if (on) {
+    ws = new WebSocket("ws://localhost:8080");
+    ws.addEventListener("open", function (event) {
+      console.log("WebSocket 接続完了");
+      ws.send("air conditioner off");
+    });
+  } else {
+  }
+}
+async function ChangeLight(on) {
+  if (on) {
+    ws = new WebSocket("ws://localhost:8080");
+    ws.addEventListener("open", function (event) {
+      console.log("WebSocket 接続完了");
+      ws.send("wake up");
+    });
+  } else {
+    ws = new WebSocket("ws://localhost:8080");
+    ws.addEventListener("open", function (event) {
+      console.log("WebSocket 接続完了");
+      ws.send("sleep");
+    });
   }
 }
 

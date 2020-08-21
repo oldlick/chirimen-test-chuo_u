@@ -23,10 +23,31 @@
   <script type="text/javascript" src="main.js"></script>
 
   <body>
+    <h3>Good Night</h3>
+
+    <hr />
+
     <form name="js">
       <input type="button" value="Connect" onclick="connect();" />
       <input type="button" value="Disconnect" onclick="disconnect();" />
     </form>
+
+    <br />
+    <font size="4">
+      <form id="AirTmpSet" onchange="setAirTmp()">
+        エアコン 起動温度 :
+        <input type="text" id="AirTmpTxt" size="6" value="26" />℃
+        <input id="AirTmpUnderRadio" type="radio" value="under" checked />以上
+        <input id="AirTmpUpperRadio" type="radio" value="upper" />以下
+      </form>
+      <span id="AirTmpMsg">---</span>
+      <form id="AlarmTimeSet" onchange="setAlarmTime()">
+        起床時刻 :
+        <input type="text" id="AlarmTimeTxtHour" size="6" value="7" />h
+        <input type="text" id="AlarmTimeTxtMinutes" size="6" value="00" />m
+      </form>
+      <span id="AlarmTimeMsg">---</span>
+    </font>
 
     <hr />
 
@@ -37,21 +58,8 @@
     <div>温度センサー <span id="TmpSensMsg">--</span>℃</div>
     <font size="5">
       <div class="box_css" id="ExistenceHumanMBox">
-        <div align="center">状態 <span id="ExistenceHumanMsg">---</span></div>
+        <div align="center">状態: <span id="ExistenceHumanMsg">---</span></div>
       </div>
     </font>
-
-    <hr />
-
-    <form id="AirTmpSet" onchange="setAirTmp()">
-      エアコン設定温度 <input type="text" id="AirTmpTxt" size="6" value="27" />℃
-    </form>
-    <form id="AlarmTimeSet" onchange="setAlarmTime()">
-      起床時刻
-      <input type="text" id="AlarmTimeTxtHour" size="6" value="7" />h
-      <input type="text" id="AlarmTimeTxtMinutes" size="6" value="00" />m
-    </form>
-    <span id="AlarmTimeMsgHour">--</span>h
-    <span id="AlarmTimeMsgMinutes">--</span>m 後にアラームが設定されています
   </body>
 </html>
