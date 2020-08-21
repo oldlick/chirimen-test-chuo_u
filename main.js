@@ -147,8 +147,10 @@ async function calcSituation(oldSituation, IrSensVal, ThermoSensImg) {
 
 async function checkAirTmp(TmpSensVal) {
   if (situation !== "sleep") {
-    AirTmpSwitch = "off";
-    changeAirTmp(false);
+    if (AirTmpSwitch === "on") {
+      AirTmpSwitch = "off";
+      changeAirTmp(false);
+    }
   } else {
     //シュミットトリガ
     if (AirTmpRadio === "under") {
