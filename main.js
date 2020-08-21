@@ -36,7 +36,7 @@ async function disconnect() {
 }
 
 async function loop() {
-  var IrSensVal, TmpSensVal, ThermoSensImg;
+  var IrSensVal, TmpSensVal, ThermoSensImg, situation;
   while (loopEnable) {
     IrSensVal = await IrSens.read();
     IrSensMsg.innerHTML = IrSensVal === 0 ? "OFF" : "ON";
@@ -45,7 +45,22 @@ async function loop() {
     ThermoSensImg = await ThermoSens.readData();
     heatMap(ThermoSensImg);
     console.log(ThermoSensImg);
+    situation = await calcSituation(IrSensVal, ThermoSensImg);
+    ExistenceHumanMsg.innerHTML = situation;
   }
+}
+
+async function calcSituation(IrSensVal, ThermoSensImg) {
+  //0: 1:there is human 2:human is sleeping
+  var cnt = 0;
+  for (var i = 0; i < 8; i++) {
+    for (var j = 0; j < 8; j++) {
+      cnt += 29 < ThermoSensImg[i][j] && ThermoSensImg[i][j] < 36 ? 1 : 0;
+    }
+  }
+  if (IrSensVal === 1) return "exist";
+  if (cnt > 1) return "sleep";
+  return "not exist";
 }
 
 function initTable() {
@@ -56,7 +71,7 @@ function initTable() {
       var td = document.createElement("td");
       td.id = "img" + j + "_" + i;
       td.innerText = "";
-      td.style.backgroundColor = "#00A000";
+      td.style.backgroundColor = "#000000";
       tr.appendChild(td);
     }
     table.appendChild(tr);
