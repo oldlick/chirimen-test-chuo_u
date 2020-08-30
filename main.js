@@ -28,6 +28,7 @@ async function connect() {
   }
   await setAirTmp();
   await setAlarmTime();
+  await setApiKey();
   loopEnable = true;
   SensLoop();
   AlarmLoop();
@@ -44,6 +45,7 @@ var AirTmpVal;
 var AirTmpSwitch = "off";
 var AirTmpRadio;
 var AlarmTimeVal;
+var SleepTimeVal;
 
 async function SensLoop() {
   var IrSensVal, TmpSensVal, ThermoSensImg;
@@ -58,6 +60,8 @@ async function SensLoop() {
     console.log(ThermoSensImg);
     situation = await calcSituation(situation, IrSensVal, ThermoSensImg);
     ExistenceHumanMsg.innerHTML = situation;
+    addMetrics("temperature", TmpSensVal);
+    sendParams(token);
     await sleep(500);
   }
 }
@@ -66,17 +70,26 @@ async function AlarmLoop() {
   while (loopEnable) {
     var NowTimeVal = new Date();
     var d = AlarmTimeVal.getTime() - NowTimeVal.getTime();
+    if (situation === "sleep") {
+      var SleepingTime = NowTimeVal.getTime() - SleepTimeVal.getTime();
+      SleepingTime = Math.floor(d / 1000 / 60);
+      if (SleepingTime % 90 === 0) {
+        if (SleepingTime + 90 >= NowTimeVal.getTime()) {
+          changeLight(true);
+        }
+      }
+    }
     if (d < 0) {
       if (situation === "sleep") {
         AlarmTimeMsg.innerHTML = "起床時間です";
-        changeLight(true);
+        changeSound(true);
       }
       setAlarmTime();
     } else {
       var hd = Math.floor(d / 1000 / 60 / 60);
-      var hm = Math.floor(d / 1000 / 60) % 60;
+      var md = Math.floor(d / 1000 / 60) % 60;
       AlarmTimeMsg.innerHTML =
-        hd + "h " + hm + "m 後にアラームが設定されています";
+        hd + "h " + md + "m 後にアラームが設定されています";
     }
     await sleep(1000);
   }
@@ -120,29 +133,32 @@ async function calcSituation(oldSituation, IrSensVal, ThermoSensImg) {
   var newSituation;
   if (cnt > 1) {
     if (IrSensVal === 1) {
-      box.style.backgroundColor = "#eeeeaa";
       newSituation = "exist";
     } else {
-      box.style.backgroundColor = "#aaeeaa";
       newSituation = "sleep";
     }
   } else {
-    box.style.backgroundColor = "#aaaaee";
     newSituation = "not exist";
   }
   if (oldSituation === "not exist") {
-    if (newSituation === "not exist") return "not exist";
-    else return "exist";
+    if (newSituation !== "not exist") newSituation = "exist";
   } else if (oldSituation === "exist") {
-    if (newSituation === "sleep") changeLight(false);
-    return newSituation;
+    if (newSituation === "sleep") {
+      changeLight(false);
+      SleepTimeVal = new Date();
+    }
   } else if (oldSituation === "sleep") {
-    if (newSituation === "not exist") {
-      changeLight(true);
-      return "not exist";
-    } else return "sleep";
+    if (newSituation === "not exist") changeLight(true);
+    else newSituation = "sleep";
   }
-  return "error";
+  if (newSituation === "not exist") {
+    box.style.backgroundColor = "#aaaaee";
+  } else if (newSituation === "exist") {
+    box.style.backgroundColor = "#eeeeaa";
+  } else if (newSituation === "sleep") {
+    box.style.backgroundColor = "#aaeeaa";
+  }
+  return newSituation;
 }
 
 async function checkAirTmp(TmpSensVal) {
@@ -205,6 +221,60 @@ async function changeLight(on) {
       ws.send("light off");
     });
   }
+}
+
+async function changeSound(on) {
+  if (on) {
+    ws = new WebSocket("ws://localhost:8080");
+    ws.addEventListener("open", function (event) {
+      console.log("WebSocket 接続完了");
+      ws.send("sound on");
+    });
+  } else {
+    ws = new WebSocket("ws://localhost:8080");
+    ws.addEventListener("open", function (event) {
+      console.log("WebSocket 接続完了");
+      ws.send("sound off");
+    });
+  }
+}
+
+const url = "https://gw.machinist.iij.jp/endpoint";
+var token = "";
+
+let param = {
+  agent: "Home",
+  metrics: []
+};
+
+function addMetrics(name, value) {
+  param.metrics.push({
+    name: name,
+    namespace: "Environment Sensor",
+    data_point: {
+      value: value
+    }
+  });
+}
+
+function sendParams(token) {
+  if (token === "") return;
+  let xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("Authorization", "Bearer " + token);
+  xhr.onreadystatechange = function () {
+    if (this.readyState === 4) {
+      console.log(xhr.response);
+    }
+  };
+  let p = JSON.stringify(param);
+  xhr.send(p);
+}
+
+function setApiKey() {
+  token = ApiKeyTxt.value;
+  console.log("token 設定完了 [" + token + "]");
 }
 
 function initTable() {

@@ -23,43 +23,54 @@
   <script type="text/javascript" src="main.js"></script>
 
   <body>
-    <h3>Good Night</h3>
+    <div align="center">
+      <font size="4">
+        <h3>Good Night</h3>
 
-    <hr />
+        <hr />
 
-    <form name="js">
-      <input type="button" value="Connect" onclick="connect();" />
-      <input type="button" value="Disconnect" onclick="disconnect();" />
-    </form>
+        <form name="js">
+          <input type="button" value="Connect" onclick="connect();" />
+          <input type="button" value="Disconnect" onclick="disconnect();" />
+        </form>
 
-    <br />
-    <font size="4">
-      <form id="AirTmpSet" onchange="setAirTmp()">
-        エアコン 起動温度 :
-        <input type="text" id="AirTmpTxt" size="6" value="26" />℃
-        <input id="AirTmpUnderRadio" type="radio" value="under" checked />以上
-        <input id="AirTmpUpperRadio" type="radio" value="upper" />以下
-      </form>
-      <span id="AirTmpMsg">---</span>
-      <form id="AlarmTimeSet" onchange="setAlarmTime()">
-        起床時刻 :
-        <input type="text" id="AlarmTimeTxtHour" size="6" value="7" />h
-        <input type="text" id="AlarmTimeTxtMinutes" size="6" value="00" />m
-      </form>
-      <span id="AlarmTimeMsg">---</span>
-    </font>
+        <br />
+        <form id="AirTmpSet" onchange="setAirTmp()">
+          エアコン 起動温度 :
+          <input type="text" id="AirTmpTxt" size="6" value="26" />℃
+          <input id="AirTmpUnderRadio" type="radio" value="under" checked />以上
+          <input id="AirTmpUpperRadio" type="radio" value="upper" />以下
+        </form>
+        <span id="AirTmpMsg">---</span>
+        <form id="AlarmTimeSet" onchange="setAlarmTime()">
+          起床時刻 :
+          <input type="text" id="AlarmTimeTxtHour" size="6" value="7" />h
+          <input type="text" id="AlarmTimeTxtMinutes" size="6" value="00" />m
+        </form>
+        <span id="AlarmTimeMsg">---</span>
 
-    <hr />
+        <hr />
 
-    <div>Micro:bit <span id="msg">---</span></div>
-    <div>サーモグラフィ</div>
-    <table style="width: 200px; height: 200px;" id="ThermoSensImg"></table>
-    <div>人感センサー <span id="IrSensMsg">--</span></div>
-    <div>温度センサー <span id="TmpSensMsg">--</span>℃</div>
-    <font size="5">
-      <div class="box_css" id="ExistenceHumanMBox">
-        <div align="center">状態: <span id="ExistenceHumanMsg">---</span></div>
-      </div>
-    </font>
+        <br />
+
+        <div>Micro:bit <span id="msg">---</span></div>
+        <form id="ApiKeySet" onchange="setApiKey()">
+          machinist API key :
+          <input type="text" id="ApiKeyTxt" />
+        </form>
+        <div>サーモグラフィ</div>
+        <table style="width: 200px; height: 200px;" id="ThermoSensImg"></table>
+        <div>人感センサー <span id="IrSensMsg">--</span></div>
+        <div>温度センサー <span id="TmpSensMsg">--</span>℃</div>
+        <br />
+        <font size="5">
+          <div class="box_css" id="ExistenceHumanMBox">
+            <div align="center">
+              状態: <span id="ExistenceHumanMsg">---</span>
+            </div>
+          </div>
+        </font>
+      </font>
+    </div>
   </body>
 </html>
